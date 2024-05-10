@@ -21,6 +21,8 @@ then, run the module with:
 
 ```shell
 python canvas.py YOUR-TOKEN CANVAS-DOMAIN
+
+Domain: bcourses.berkeley.edu
 ```
 
 Where:

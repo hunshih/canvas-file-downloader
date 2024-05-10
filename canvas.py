@@ -140,7 +140,7 @@ class CanvasDownloader(CanvasApi):
         for course in courses:
             print_c(course["course_code"], type_="group", padding=0)
             course_code, course_id = course["id"], course["course_code"]
-
+            
             methods = [self._download_from_modules, self._download_from_folders]
 
             if use == "both":
@@ -154,6 +154,7 @@ class CanvasDownloader(CanvasApi):
             available = methods[0](course_code, course_id)
             if not available:
                 methods[1](course_code, course_id)
+            
         return True
 
     def _download_from_folders(self, course_id, course_name) -> bool:
@@ -222,7 +223,8 @@ class CanvasDownloader(CanvasApi):
         if a file with the same name exists.
         """
         dir_path = os.path.join(self.out_dir, *folder_path)
-
+        print('--' + dir_path)
+        return
         # See if the directory is valid
         try:
             os.makedirs(os.path.join(dir_path), exist_ok=True)
