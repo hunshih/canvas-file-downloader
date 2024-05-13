@@ -4,15 +4,29 @@ import argparse
 import dataclasses
 import os
 import re
+import subprocess
 
 import colorama
 import requests
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, QLineEdit
+from PyQt5.QtCore import QTimer
+
+DOMAIN = 'bcourses.berkeley.edu'
+OUTPUT = 'CanvasFiles'
 
 colorama.init(autoreset=True)
 
+def prevent_sleep():
+    # Start a subprocess running caffeinate
+    return subprocess.Popen("caffeinate")
+
+def stop_prevent_sleep(process):
+    # Stop the caffeinate process
+    process.terminate()
 
 def print_c(string, type_, padding, **kwarg):
     """Prints with color"""
+    padded = ''
     if type_ == "error":
         padded = " " * (padding * 2) + "! " + string
         print(colorama.Fore.RED + padded, **kwarg)
@@ -26,8 +40,23 @@ def print_c(string, type_, padding, **kwarg):
         padded = " " * (padding * 2) + "* " + string
         print(colorama.Fore.YELLOW + padded, **kwarg)
     elif type_ == "item":
-        print(" " * (padding * 2) + string, **kwarg)
+        padded = " " * (padding * 2) + string
+        print(padded, **kwarg)
 
+def start_download():
+    global caffeinate_process, token
+    caffeinate_process = prevent_sleep()  # Prevent the system from sleeping
+
+    downloader = CanvasDownloader(DOMAIN, token, OUTPUT)
+    if downloader.download_files(all_courses=True):
+        text_edit.append("Download completed!")
+    else:
+        text_edit.append("Download failed!")
+
+    stop_prevent_sleep(caffeinate_process)  # Allow the system to sleep again
+    line_edit.setEnabled(True)
+    button.setEnabled(True)
+    text_edit.update()
 
 def get_external_download_url(url: str) -> str:
     """
@@ -131,13 +160,31 @@ class CanvasDownloader(CanvasApi):
 
     def download_files(self, all_courses=False, courses_ids=None, use="both"):
         """Downloads files from Canvas"""
-        courses = self.get_courses(not all_courses)
+        courses = self.get_courses()
+        # try print all courses
+        '''
+        courseCount = 0
+        for course in courses:
+            # text_edit.append(course["course_code"])
+            # print_c(course["course_code"], type_="group", padding=0)
+            if 'name' in course:
+                print(course['name'])
+            else:
+                print(course)
+
+            courseCount = courseCount + 1
+        print(courseCount)
+
+        return
+        '''
 
         if "errors" in courses:
             print_c("error: " + courses["errors"][0]["message"], "error", 0)
             return False
 
         for course in courses:
+            if 'name' not in course:
+                continue
             print_c(course["course_code"], type_="group", padding=0)
             course_code, course_id = course["id"], course["course_code"]
             
@@ -223,8 +270,6 @@ class CanvasDownloader(CanvasApi):
         if a file with the same name exists.
         """
         dir_path = os.path.join(self.out_dir, *folder_path)
-        print('--' + dir_path)
-        return
         # See if the directory is valid
         try:
             os.makedirs(os.path.join(dir_path), exist_ok=True)
@@ -280,8 +325,39 @@ class CanvasDownloader(CanvasApi):
                 print_c(" | ".join((f"{perc:3.0f}%", file_name,)), "new", 2, end="\r")
             print(end="\n")
 
+def on_button_click():
+    global token
+    token = line_edit.text()
+    line_edit.setEnabled(False)
+    button.setEnabled(False)
+    text_edit.append(f"Accessing Canvas using token: {token}")
+    text_edit.append("Starting download...")
+    text_edit.update()
+    
+    # Set up a timer to delay the download start
+    QTimer.singleShot(500, start_download)  # Delay in milliseconds
 
 if __name__ == "__main__":
+
+    app = QApplication([])
+    window = QWidget()
+    layout = QVBoxLayout()
+
+    line_edit = QLineEdit()  # Input field for the token
+    layout.addWidget(line_edit)
+
+    button = QPushButton('Enter Token')
+    button.clicked.connect(on_button_click)  # Connect the button's click signal to the handler
+    layout.addWidget(button)
+
+    text_edit = QTextEdit()  # Multiline text box
+    layout.addWidget(text_edit)
+
+    window.setLayout(layout)
+    window.show()
+    app.exec_()
+
+    '''
     parser = argparse.ArgumentParser(description="Download files from Canvas")
     parser.add_argument("token", metavar="TOKEN", help="Canvas access token")
     parser.add_argument("domain", metavar="DOMAIN", help="Canvas domain")
@@ -310,3 +386,5 @@ if __name__ == "__main__":
 
     API = CanvasDownloader(args.domain, args.token, args.o)
     API.download_files(args.all, args.f)
+
+    '''
