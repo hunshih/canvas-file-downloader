@@ -3,6 +3,7 @@
 import argparse
 import dataclasses
 import os
+import sys
 import re
 import subprocess
 
@@ -15,6 +16,18 @@ DOMAIN = 'bcourses.berkeley.edu'
 OUTPUT = 'CanvasFiles'
 
 colorama.init(autoreset=True)
+
+# Determine if running as a frozen executable or as a script
+if getattr(sys, 'frozen', False):
+    # If the application is run as a frozen executable (e.g., packaged with PyInstaller).
+    application_path = os.path.dirname(sys.executable)
+else:
+    # If the application is run as a normal script.
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+out_dir = os.path.join(application_path, OUTPUT)
+
+# Use 'out_dir' as the base directory for all file operations
 
 def prevent_sleep():
     # Start a subprocess running caffeinate
@@ -47,7 +60,7 @@ def start_download():
     global caffeinate_process, token
     caffeinate_process = prevent_sleep()  # Prevent the system from sleeping
 
-    downloader = CanvasDownloader(DOMAIN, token, OUTPUT)
+    downloader = CanvasDownloader(DOMAIN, token, out_dir)
     if downloader.download_files(all_courses=True):
         text_edit.append("Download completed!")
     else:

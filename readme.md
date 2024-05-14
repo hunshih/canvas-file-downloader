@@ -37,6 +37,13 @@ Optional parameters:
 - `-o DIR`: name of the output directory (default: `CanvasFiles`).
 - `--all`: include all courses instead of only favorites.
 
+Build Mac Executable
+```
+pip install pyinstaller
+
+pyinstaller --onefile canvas.py
+```
+
 Related projects:
 
 - [CanvasSync](https://github.com/perslev/CanvasSync)
