@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import subprocess
+import pyfiglet
 
 import colorama
 import requests
